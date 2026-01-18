@@ -1,0 +1,49 @@
+{
+  "name": "apigen-cli",
+  "version": "1.0.0",
+  "description": "API dokümantasyonu ve test araçları otomatik üretici - OpenAPI, FastAPI, Flask, Spring Boot, ASP.NET Core destekli",
+  "main": "dist/core/orchestrator.js",
+  "bin": {
+    "apigen": "./bin/apigen.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "start": "node bin/apigen.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "api",
+    "openapi",
+    "swagger",
+    "postman",
+    "curl",
+    "documentation",
+    "fastapi",
+    "spring-boot",
+    "aspnet",
+    "flask",
+    "code-generator"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@faker-js/faker": "^8.3.1",
+    "chalk": "^4.1.2",
+    "chokidar": "^3.5.3",
+    "commander": "^11.1.0",
+    "glob": "^10.3.10",
+    "handlebars": "^4.7.8",
+    "ora": "^5.4.1",
+    "postman-collection": "^4.4.0",
+    "swagger-parser": "^10.0.3",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
