@@ -1,0 +1,204 @@
+{
+  "$schema": "./apigen.config.schema.json",
+  "_comment": "Bu dosya Apigen CLI için örnek yapılandırma dosyasıdır. Kullanmak için 'apigen.config.json' olarak kopyalayın.",
+
+  "source": {
+    "_comment": "Kaynak ayarları - API tanımının nereden okunacağı",
+
+    "type": "auto",
+    "_type_options": ["auto", "openapi", "swagger", "fastapi", "flask", "spring", "aspnet"],
+
+    "path": ".",
+    "_path_comment": "Kaynak dosya veya dizin yolu. '.' mevcut dizin anlamına gelir.",
+
+    "include": ["**/*.py", "**/*.java", "**/*.cs"],
+    "_include_comment": "Taranacak dosya pattern'leri (glob format)",
+
+    "exclude": ["**/node_modules/**", "**/venv/**", "**/.git/**", "**/dist/**", "**/build/**"],
+    "_exclude_comment": "Hariç tutulacak dizinler"
+  },
+
+  "output": {
+    "_comment": "Çıktı ayarları",
+
+    "directory": "./apigen-output",
+    "_directory_comment": "Çıktı dosyalarının yazılacağı dizin",
+
+    "clean": true,
+    "_clean_comment": "true ise çıktı dizini her çalıştırmada temizlenir"
+  },
+
+  "api": {
+    "_comment": "API genel bilgileri",
+
+    "title": "My API",
+    "version": "1.0.0",
+    "description": "API açıklaması buraya yazılır",
+
+    "baseUrl": "http://localhost:3000",
+    "_baseUrl_comment": "API'nin temel URL'i. Environment variable olarak da belirtilebilir: ${API_BASE_URL}",
+
+    "contact": {
+      "name": "API Destek",
+      "email": "api-support@example.com",
+      "url": "https://example.com/support"
+    },
+
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+
+  "auth": {
+    "_comment": "Authentication ayarları",
+
+    "type": "bearer",
+    "_type_options": ["none", "bearer", "apiKey", "basic", "oauth2"],
+
+    "tokenPlaceholder": "{{token}}",
+    "_tokenPlaceholder_comment": "Token için kullanılacak placeholder. Postman ve cURL çıktılarında bu değer kullanılır.",
+
+    "keyName": "X-API-Key",
+    "_keyName_comment": "API Key tipi için header/query param adı",
+
+    "keyIn": "header",
+    "_keyIn_options": ["header", "query"],
+
+    "keyValue": "{{apiKey}}",
+    "_keyValue_comment": "API Key değeri (placeholder)"
+  },
+
+  "generators": {
+    "_comment": "Hangi çıktıların üretileceği",
+
+    "postman": {
+      "enabled": true,
+      "filename": "postman_collection.json",
+      "_filename_comment": "Postman collection dosya adı",
+
+      "includeExamples": true,
+      "_includeExamples_comment": "Örnek request/response dahil edilsin mi",
+
+      "folderStrategy": "tag",
+      "_folderStrategy_options": ["tag", "path", "flat"],
+      "_folderStrategy_comment": "Endpoint'lerin klasörlenmesi: tag (tag'lere göre), path (path'e göre), flat (düz liste)"
+    },
+
+    "curl": {
+      "enabled": true,
+      "directory": "curl",
+      "_directory_comment": "cURL script'lerinin yazılacağı alt dizin",
+
+      "separateFiles": true,
+      "_separateFiles_comment": "Her endpoint için ayrı dosya mı, tek dosya mı",
+
+      "includeComments": true,
+      "_includeComments_comment": "Script'lere açıklama yorumları eklensin mi",
+
+      "shellType": "bash",
+      "_shellType_options": ["bash", "powershell", "cmd"]
+    },
+
+    "readme": {
+      "enabled": true,
+      "filename": "API_DOCUMENTATION.md",
+      "_filename_comment": "Markdown dosya adı",
+
+      "template": "default",
+      "_template_comment": "Kullanılacak şablon. 'default' veya özel şablon dosya yolu",
+
+      "includeTableOfContents": true,
+      "includeCurlExamples": true,
+      "includeResponseExamples": true
+    }
+  },
+
+  "mockData": {
+    "_comment": "Örnek veri üretimi ayarları",
+
+    "enabled": true,
+
+    "locale": "tr",
+    "_locale_comment": "Faker.js locale'i. 'tr' Türkçe, 'en' İngilizce",
+
+    "seed": 12345,
+    "_seed_comment": "Random seed. Aynı seed her zaman aynı verileri üretir. null için rastgele.",
+
+    "arrayMinItems": 1,
+    "arrayMaxItems": 3,
+    "_array_comment": "Array tipindeki alanlar için min/max eleman sayısı",
+
+    "stringMinLength": 5,
+    "stringMaxLength": 50,
+    "_string_comment": "String tipindeki alanlar için min/max karakter sayısı",
+
+    "customGenerators": {
+      "_comment": "Alan adına göre özel veri üreticileri",
+      "email": "faker.internet.email()",
+      "phone": "faker.phone.number()",
+      "name": "faker.person.fullName()",
+      "firstName": "faker.person.firstName()",
+      "lastName": "faker.person.lastName()",
+      "address": "faker.location.streetAddress()",
+      "city": "faker.location.city()",
+      "country": "faker.location.country()",
+      "zipCode": "faker.location.zipCode()",
+      "url": "faker.internet.url()",
+      "avatar": "faker.image.avatar()",
+      "uuid": "faker.string.uuid()",
+      "date": "faker.date.recent()",
+      "datetime": "faker.date.recent().toISOString()",
+      "timestamp": "Date.now()",
+      "price": "faker.commerce.price()",
+      "description": "faker.lorem.paragraph()",
+      "title": "faker.lorem.sentence()"
+    }
+  },
+
+  "validation": {
+    "_comment": "Kaynak kod doğrulama ayarları",
+
+    "strict": false,
+    "_strict_comment": "Strict modda eksik bilgiler hata olarak raporlanır",
+
+    "warnOnMissingDescription": true,
+    "warnOnMissingExample": true,
+    "warnOnMissingResponseSchema": true
+  },
+
+  "watch": {
+    "_comment": "Dosya izleme modu ayarları (apigen watch komutu için)",
+
+    "enabled": false,
+
+    "paths": ["./src/**/*.py", "./src/**/*.java", "./openapi.yaml"],
+    "_paths_comment": "İzlenecek dosya pattern'leri",
+
+    "debounce": 1000,
+    "_debounce_comment": "Değişiklikten sonra bekleme süresi (ms)"
+  },
+
+  "hooks": {
+    "_comment": "Özel komutlar (hook'lar)",
+
+    "beforeGenerate": null,
+    "_beforeGenerate_comment": "Üretimden önce çalıştırılacak komut. Örn: 'npm run validate-schema'",
+
+    "afterGenerate": null,
+    "_afterGenerate_comment": "Üretimden sonra çalıştırılacak komut. Örn: 'npm run format'"
+  },
+
+  "logging": {
+    "_comment": "Loglama ayarları",
+
+    "level": "info",
+    "_level_options": ["debug", "info", "warn", "error", "silent"],
+
+    "colorize": true,
+    "_colorize_comment": "Renkli terminal çıktısı",
+
+    "timestamp": false,
+    "_timestamp_comment": "Log mesajlarına zaman damgası ekle"
+  }
+}

@@ -379,12 +379,12 @@ export class ConfigLoader {
    * @param source - Kaynak obje (override eden)
    * @returns Merge edilmiş obje
    */
-  private deepMerge<T extends Record<string, unknown>>(target: T, source: Partial<T>): T {
-    const result = { ...target };
+  private deepMerge(target: ApigenConfig, source: Partial<ApigenConfig>): ApigenConfig {
+    const result = { ...target } as unknown as Record<string, unknown>;
 
-    for (const key of Object.keys(source) as Array<keyof T>) {
-      const sourceValue = source[key];
-      const targetValue = target[key];
+    for (const key of Object.keys(source)) {
+      const sourceValue = (source as unknown as Record<string, unknown>)[key];
+      const targetValue = (target as unknown as Record<string, unknown>)[key];
 
       if (
         sourceValue !== undefined &&
@@ -396,17 +396,17 @@ export class ConfigLoader {
         !Array.isArray(targetValue)
       ) {
         // Nested object - recursive merge
-        result[key] = this.deepMerge(
-          targetValue as Record<string, unknown>,
-          sourceValue as Record<string, unknown>
-        ) as T[keyof T];
+        result[key] = {
+          ...targetValue as Record<string, unknown>,
+          ...sourceValue as Record<string, unknown>
+        };
       } else if (sourceValue !== undefined) {
         // Primitive veya array - direct assign
-        result[key] = sourceValue as T[keyof T];
+        result[key] = sourceValue;
       }
     }
 
-    return result;
+    return result as unknown as ApigenConfig;
   }
 }
 

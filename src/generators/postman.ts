@@ -243,7 +243,7 @@ export class PostmanGenerator extends BaseGenerator {
           bearer: [
             {
               key: 'token',
-              value: auth.tokenPlaceholder,
+              value: auth.tokenPlaceholder || '{{token}}',
               type: 'string'
             }
           ]
@@ -269,7 +269,7 @@ export class PostmanGenerator extends BaseGenerator {
             },
             {
               key: 'value',
-              value: auth.tokenPlaceholder,
+              value: auth.tokenPlaceholder || '{{apiKey}}',
               type: 'string'
             },
             {
@@ -380,7 +380,7 @@ export class PostmanGenerator extends BaseGenerator {
     options: GeneratorOptions
   ): PostmanItem {
     // URL
-    const url = this.buildUrl(endpoint, project.config.baseUrl);
+    const url = this.buildPostmanUrl(endpoint, project.config.baseUrl);
 
     // Headers
     const headers = this.buildHeaders(endpoint);
@@ -412,9 +412,9 @@ export class PostmanGenerator extends BaseGenerator {
   }
 
   /**
-   * URL yapısını oluşturur
+   * Postman URL yapısını oluşturur
    */
-  private buildUrl(endpoint: ApiEndpoint, baseUrl: string): PostmanUrl {
+  private buildPostmanUrl(endpoint: ApiEndpoint, baseUrl: string): PostmanUrl {
     // Path'i parçala
     const pathParts = endpoint.path.split('/').filter(Boolean);
 

@@ -333,28 +333,27 @@ export class ProjectDetector {
       }
     }
 
-    // FastAPI ve Flask pattern'lerini ara
+    // FastAPI, Flask ve Django REST Framework pattern'lerini ara
     const fastapiScore = await this.detectFastApi(projectPath);
     const flaskScore = await this.detectFlask(projectPath);
+    const djangoScore = await this.detectDjango(projectPath);
 
     // En yüksek skora sahip olanı döndür
-    if (fastapiScore.score > flaskScore.score && fastapiScore.score >= MIN_CONFIDENCE_THRESHOLD) {
-      return {
-        type: ProjectType.FASTAPI,
-        confidence: fastapiScore.score,
-        reasons: fastapiScore.reasons,
-        projectFiles: [...projectFiles, ...fastapiScore.files],
-        estimatedEndpoints: fastapiScore.endpoints
-      };
-    }
+    const scores = [
+      { type: ProjectType.FASTAPI, ...fastapiScore },
+      { type: ProjectType.FLASK, ...flaskScore },
+      { type: ProjectType.DJANGO_REST, ...djangoScore }
+    ].sort((a, b) => b.score - a.score);
 
-    if (flaskScore.score >= MIN_CONFIDENCE_THRESHOLD) {
+    const best = scores[0];
+
+    if (best.score >= MIN_CONFIDENCE_THRESHOLD) {
       return {
-        type: ProjectType.FLASK,
-        confidence: flaskScore.score,
-        reasons: flaskScore.reasons,
-        projectFiles: [...projectFiles, ...flaskScore.files],
-        estimatedEndpoints: flaskScore.endpoints
+        type: best.type,
+        confidence: best.score,
+        reasons: best.reasons,
+        projectFiles: [...projectFiles, ...best.files],
+        estimatedEndpoints: best.endpoints
       };
     }
 
@@ -498,6 +497,96 @@ export class ProjectDetector {
     // Endpoint sayısına göre bonus puan
     if (endpointCount > 0) {
       score += Math.min(DETECTION_SCORES.MULTIPLE_ENDPOINTS, endpointCount * 5);
+      reasons.push(`${endpointCount} endpoint bulundu`);
+    }
+
+    return { score, reasons, files, endpoints: endpointCount };
+  }
+
+  /**
+   * Django REST Framework pattern'lerini arar
+   *
+   * @param projectPath - Proje dizini
+   * @returns Skor ve nedenler
+   */
+  private async detectDjango(projectPath: string): Promise<{
+    score: number;
+    reasons: string[];
+    files: string[];
+    endpoints: number;
+  }> {
+    let score = 0;
+    const reasons: string[] = [];
+    const files: string[] = [];
+    let endpointCount = 0;
+
+    // manage.py kontrolü (Django projesi göstergesi)
+    const managePath = path.join(projectPath, 'manage.py');
+    if (fs.existsSync(managePath)) {
+      score += DETECTION_SCORES.PROJECT_FILE;
+      reasons.push('Django projesi (manage.py)');
+      files.push(managePath);
+    }
+
+    // Python dosyalarını bul
+    const pyFiles = await glob('**/*.py', {
+      cwd: projectPath,
+      ignore: ['**/venv/**', '**/.venv/**', '**/env/**', '**/__pycache__/**', '**/migrations/**', '**/test*/**'],
+      maxDepth: this.maxDepth
+    });
+
+    for (const pyFile of pyFiles) {
+      const filePath = path.join(projectPath, pyFile);
+
+      try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+
+        // Django REST Framework import kontrolü
+        if (content.includes('from rest_framework') || content.includes('import rest_framework')) {
+          score += DETECTION_SCORES.CODE_PATTERN;
+          reasons.push(`Django REST Framework import bulundu: ${pyFile}`);
+          files.push(filePath);
+        }
+
+        // @api_view decorator kontrolü
+        const apiViewMatches = content.match(/@api_view\s*\(/gi);
+        if (apiViewMatches) {
+          endpointCount += apiViewMatches.length;
+        }
+
+        // ViewSet kontrolü
+        if (/class\s+\w+\s*\(\s*(?:viewsets\.)?(ModelViewSet|ViewSet|GenericViewSet|ReadOnlyModelViewSet)/i.test(content)) {
+          score += DETECTION_SCORES.FRAMEWORK_FILE;
+          reasons.push(`ViewSet bulundu: ${pyFile}`);
+          endpointCount += 6; // ViewSet varsayılan 6 endpoint
+        }
+
+        // APIView kontrolü
+        if (/class\s+\w+\s*\(\s*(?:generics\.)?(APIView|GenericAPIView|ListCreateAPIView|RetrieveUpdateDestroyAPIView)/i.test(content)) {
+          score += DETECTION_SCORES.CODE_PATTERN;
+          reasons.push(`APIView bulundu: ${pyFile}`);
+          endpointCount += 1;
+        }
+
+        // Router kontrolü
+        if (content.includes('DefaultRouter(') || content.includes('SimpleRouter(')) {
+          score += DETECTION_SCORES.PROJECT_FILE;
+          reasons.push(`DRF Router bulundu: ${pyFile}`);
+        }
+
+        // Serializer kontrolü
+        if (/class\s+\w+Serializer\s*\(/i.test(content)) {
+          score += DETECTION_SCORES.PROJECT_FILE;
+          reasons.push(`Serializer bulundu: ${pyFile}`);
+        }
+      } catch {
+        // Dosya okunamadı, devam et
+      }
+    }
+
+    // Endpoint sayısına göre bonus puan
+    if (endpointCount > 0) {
+      score += Math.min(DETECTION_SCORES.MULTIPLE_ENDPOINTS, endpointCount * 3);
       reasons.push(`${endpointCount} endpoint bulundu`);
     }
 

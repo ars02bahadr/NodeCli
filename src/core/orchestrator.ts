@@ -33,6 +33,7 @@ import { ensureDir } from '../utils/file-io';
 import { OpenApiExtractor } from '../extractors/openapi';
 import { FastApiExtractor } from '../extractors/python/fastapi';
 import { FlaskExtractor } from '../extractors/python/flask';
+import { DjangoRestExtractor } from '../extractors/python/django';
 import { SpringBootExtractor } from '../extractors/java/spring';
 import { AspNetExtractor } from '../extractors/dotnet/aspnet';
 import { BaseExtractor } from '../extractors/base';
@@ -53,6 +54,31 @@ import { AuthResolver } from '../resolvers/auth';
 
 /** Apigen versiyonu */
 const VERSION = '1.0.0';
+
+/**
+ * CLI framework argümanlarını ProjectType'a dönüştüren mapping
+ * 
+ * Kullanıcılar kısa isimler kullanabilir (spring, aspnet)
+ * ve bunlar doğru enum değerlerine çevrilir.
+ */
+const FRAMEWORK_ALIASES: Record<string, ProjectType> = {
+  // Kısa isimler
+  'spring': ProjectType.SPRING_BOOT,
+  'springboot': ProjectType.SPRING_BOOT,
+  'aspnet': ProjectType.ASPNET_CORE,
+  'dotnet': ProjectType.ASPNET_CORE,
+  'django': ProjectType.DJANGO_REST,
+  'drf': ProjectType.DJANGO_REST,
+
+  // Tam isimler (enum değerleri)
+  'spring-boot': ProjectType.SPRING_BOOT,
+  'aspnet-core': ProjectType.ASPNET_CORE,
+  'django-rest': ProjectType.DJANGO_REST,
+  'openapi': ProjectType.OPENAPI,
+  'fastapi': ProjectType.FASTAPI,
+  'flask': ProjectType.FLASK,
+  'express': ProjectType.EXPRESS
+};
 
 /** ASCII banner */
 const BANNER = `
@@ -199,8 +225,16 @@ export class Orchestrator {
       let specFile: string | undefined;
 
       if (this.config.framework && this.config.framework !== 'auto') {
-        // Manuel olarak belirtilmiş
-        projectType = this.config.framework as ProjectType;
+        // Manuel olarak belirtilmiş - alias'lar üzerinden normalize et
+        const frameworkKey = this.config.framework.toLowerCase();
+        projectType = FRAMEWORK_ALIASES[frameworkKey];
+
+        if (!projectType) {
+          this.logger.error(`❌ Bilinmeyen framework tipi: ${this.config.framework}`);
+          this.logger.info('Desteklenen tipler: openapi, fastapi, flask, spring, aspnet');
+          process.exit(1);
+        }
+
         this.logger.info(`✓ Kullanılan framework: ${projectType} (manuel)`);
 
         // OpenAPI için source dosyası kontrol et
@@ -269,10 +303,18 @@ export class Orchestrator {
         this.logger.success(`✓ ${totalEndpoints} endpoint için örnek veri üretildi`);
       }
 
-      // Auth resolver
-      if (this.config.auth) {
-        const authResolver = new AuthResolver(this.config.auth);
-        await authResolver.resolve(project);
+      // Auth resolver - project'e auth bilgisini uygula
+      if (this.config.auth && project.auth) {
+        const authResolverInstance = new AuthResolver();
+        // Auth'u tüm endpoint'lere uygula
+        for (const group of project.groups) {
+          for (let i = 0; i < group.endpoints.length; i++) {
+            group.endpoints[i] = authResolverInstance.applyToEndpoint(
+              group.endpoints[i],
+              project.auth
+            );
+          }
+        }
       }
 
       // 5. Generator'ları çalıştır
@@ -509,6 +551,9 @@ export class Orchestrator {
 
       case ProjectType.FLASK:
         return new FlaskExtractor(this.logger);
+
+      case ProjectType.DJANGO_REST:
+        return new DjangoRestExtractor(this.logger);
 
       case ProjectType.SPRING_BOOT:
         return new SpringBootExtractor(this.logger);

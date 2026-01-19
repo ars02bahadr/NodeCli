@@ -187,7 +187,7 @@ export class CurlGenerator extends BaseGenerator {
     parts.push(`-X ${endpoint.method}`);
 
     // URL
-    const url = this.buildUrl(endpoint);
+    const url = this.buildEndpointUrl(endpoint);
     parts.push(`"${url}"`);
 
     // Headers
@@ -211,9 +211,9 @@ export class CurlGenerator extends BaseGenerator {
   }
 
   /**
-   * URL oluşturur
+   * Endpoint için URL oluşturur (shell variable formatında)
    */
-  private buildUrl(endpoint: ApiEndpoint): string {
+  private buildEndpointUrl(endpoint: ApiEndpoint): string {
     // Path parametrelerini değişkenle değiştir
     let url = endpoint.path;
     const pathParams = endpoint.parameters.filter(p => p.in === 'path');

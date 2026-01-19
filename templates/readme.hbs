@@ -1,0 +1,294 @@
+# {{info.title}}
+
+{{#if info.version}}
+> Version: {{info.version}}
+{{/if}}
+
+{{#if info.description}}
+{{info.description}}
+{{/if}}
+
+---
+
+## Base URL
+
+```
+{{config.baseUrl}}
+```
+
+{{#if auth}}
+## Authentication
+
+| Property | Value |
+|----------|-------|
+| **Type** | {{auth.type}} |
+{{#if auth.keyName}}
+| **Header/Key Name** | `{{auth.keyName}}` |
+{{/if}}
+{{#if auth.keyIn}}
+| **Location** | {{auth.keyIn}} |
+{{/if}}
+{{#if auth.tokenPlaceholder}}
+| **Token Placeholder** | `{{auth.tokenPlaceholder}}` |
+{{/if}}
+
+{{#ifEquals auth.type "bearer"}}
+### Bearer Token Usage
+
+Add the following header to your requests:
+
+```
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+{{/ifEquals}}
+
+{{#ifEquals auth.type "apiKey"}}
+### API Key Usage
+
+{{#ifEquals auth.keyIn "header"}}
+Add the following header to your requests:
+
+```
+{{auth.keyName}}: YOUR_API_KEY_HERE
+```
+{{/ifEquals}}
+
+{{#ifEquals auth.keyIn "query"}}
+Add the following query parameter to your requests:
+
+```
+?{{auth.keyName}}=YOUR_API_KEY_HERE
+```
+{{/ifEquals}}
+{{/ifEquals}}
+
+{{#ifEquals auth.type "basic"}}
+### Basic Auth Usage
+
+```bash
+curl -u "username:password" {{config.baseUrl}}/endpoint
+```
+{{/ifEquals}}
+
+{{/if}}
+
+---
+
+## Endpoints Overview
+
+| Method | Path | Summary |
+|--------|------|---------|
+{{#each groups}}
+{{#each endpoints}}
+| `{{method}}` | `{{path}}` | {{summary}} |
+{{/each}}
+{{/each}}
+
+---
+
+## API Reference
+
+{{#each groups}}
+## {{name}}
+
+{{#if description}}
+> {{description}}
+{{/if}}
+
+{{#each endpoints}}
+### {{method}} `{{path}}`
+
+{{#if summary}}
+**{{summary}}**
+{{/if}}
+
+{{#if description}}
+{{description}}
+{{/if}}
+
+{{#if parameters.length}}
+#### Parameters
+
+| Name | Location | Type | Required | Description |
+|------|----------|------|----------|-------------|
+{{#each parameters}}
+| `{{name}}` | {{in}} | {{schema.type}}{{#if schema.format}} ({{schema.format}}){{/if}} | {{#if required}}Yes{{else}}No{{/if}} | {{description}} |
+{{/each}}
+{{/if}}
+
+{{#if requestBody}}
+#### Request Body
+
+{{#if requestBody.description}}
+{{requestBody.description}}
+{{/if}}
+
+**Content-Type:** `{{requestBody.contentType}}`
+
+{{#if requestBody.schema}}
+**Schema:**
+
+```json
+{{{jsonPretty requestBody.schema}}}
+```
+{{/if}}
+
+{{#if requestBody.example}}
+**Example:**
+
+```json
+{{{jsonPretty requestBody.example}}}
+```
+{{/if}}
+{{/if}}
+
+{{#if responses.length}}
+#### Responses
+
+{{#each responses}}
+##### {{statusCode}} {{statusText}}
+
+{{#if description}}
+{{description}}
+{{/if}}
+
+{{#if schema}}
+**Schema:**
+
+```json
+{{{jsonPretty schema}}}
+```
+{{/if}}
+
+{{#if example}}
+**Example:**
+
+```json
+{{{jsonPretty example}}}
+```
+{{/if}}
+
+{{/each}}
+{{/if}}
+
+{{#if curlExample}}
+#### cURL Example
+
+```bash
+{{{curlExample}}}
+```
+{{/if}}
+
+---
+
+{{/each}}
+{{/each}}
+
+## Quick Start
+
+### Using cURL
+
+```bash
+# Set your base URL and token
+export BASE_URL="{{config.baseUrl}}"
+{{#if auth}}
+{{#ifEquals auth.type "bearer"}}
+export TOKEN="your_token_here"
+{{/ifEquals}}
+{{#ifEquals auth.type "apiKey"}}
+export API_KEY="your_api_key_here"
+{{/ifEquals}}
+{{/if}}
+
+# Example request
+{{#each groups}}
+{{#if @first}}
+{{#each endpoints}}
+{{#if @first}}
+curl -X {{method}} "$BASE_URL{{path}}" \
+{{#if ../../auth}}
+{{#ifEquals ../../auth.type "bearer"}}
+  -H "Authorization: Bearer $TOKEN" \
+{{/ifEquals}}
+{{#ifEquals ../../auth.type "apiKey"}}
+  -H "{{../../auth.keyName}}: $API_KEY" \
+{{/ifEquals}}
+{{/if}}
+  -H "Content-Type: application/json"
+{{/if}}
+{{/each}}
+{{/if}}
+{{/each}}
+```
+
+### Using Postman
+
+1. Import the `postman_collection.json` file into Postman
+2. Set up your environment variables:
+   - `baseUrl`: `{{config.baseUrl}}`
+{{#if auth}}
+{{#ifEquals auth.type "bearer"}}
+   - `token`: Your authentication token
+{{/ifEquals}}
+{{#ifEquals auth.type "apiKey"}}
+   - `apiKey`: Your API key
+{{/ifEquals}}
+{{/if}}
+3. Start making requests!
+
+---
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| 200 | Success |
+| 201 | Created |
+| 400 | Bad Request - Invalid parameters |
+| 401 | Unauthorized - Authentication required |
+| 403 | Forbidden - Insufficient permissions |
+| 404 | Not Found - Resource does not exist |
+| 422 | Unprocessable Entity - Validation error |
+| 500 | Internal Server Error |
+
+---
+
+## Rate Limiting
+
+{{#if config.rateLimit}}
+This API implements rate limiting:
+
+- **Limit:** {{config.rateLimit.limit}} requests
+- **Window:** {{config.rateLimit.window}}
+- **Headers:** `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+{{else}}
+Please refer to the API provider's documentation for rate limiting information.
+{{/if}}
+
+---
+
+## Support
+
+{{#if info.contact}}
+{{#if info.contact.email}}
+- **Email:** {{info.contact.email}}
+{{/if}}
+{{#if info.contact.url}}
+- **Website:** {{info.contact.url}}
+{{/if}}
+{{/if}}
+
+{{#if info.license}}
+## License
+
+{{info.license.name}}
+{{#if info.license.url}}
+[View License]({{info.license.url}})
+{{/if}}
+{{/if}}
+
+---
+
+*This documentation was automatically generated by [Apigen CLI](https://github.com/apigen/apigen-cli)*
+
+*Generated at: {{generatedAt}}*

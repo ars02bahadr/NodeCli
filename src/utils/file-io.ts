@@ -299,9 +299,9 @@ export function fileExists(filePath: string): boolean {
  *
  * @example
  * ```typescript
- * const pyFiles = await findFiles('**\/*.py', {
+ * const pyFiles = await findFiles('**' + '/*.py', {
  *   cwd: '/project',
- *   ignore: ['**/venv/**']
+ *   ignore: ['**' + '/venv/**']
  * });
  * ```
  */

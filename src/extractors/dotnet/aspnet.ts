@@ -49,8 +49,22 @@ import {
  * Yakalar:
  * - [ApiController] public class UserController : ControllerBase
  * - [Route("api/[controller]")] public class ItemsController : Controller
+ * - public class CategoriesController : ApiController (özel base class)
+ * - public sealed class XxxController : BaseController
  */
-const CONTROLLER_CLASS_REGEX = /(?:\[ApiController\][\s\S]*?)?\[Route\s*\(\s*["']([^"']+)["']\s*\)\][\s\S]*?public\s+class\s+(\w+Controller)\s*:\s*(?:ControllerBase|Controller)/gi;
+const CONTROLLER_CLASS_REGEX = /(?:\[ApiController\][\s\S]*?)?(?:\[Route\s*\(\s*["']([^"']+)["']\s*\)\][\s\S]*?)?public\s+(?:sealed\s+)?class\s+(\w+Controller)\s*:\s*(\w+)/gi;
+
+/**
+ * Controller base class'ları
+ * Bu isimlerden birinden türeyen sınıflar controller olarak kabul edilir
+ */
+const CONTROLLER_BASE_CLASSES = [
+  'ControllerBase',
+  'Controller',
+  'ApiController',
+  'BaseController',
+  'BaseApiController'
+];
 
 /**
  * HTTP metod attribute pattern'leri
@@ -311,11 +325,30 @@ export class AspNetExtractor extends BaseExtractor {
     let match;
 
     while ((match = regex.exec(content)) !== null) {
-      const routeTemplate = match[1];
+      const routeTemplate = match[1] || '';
       const controllerName = match[2];
+      const baseClassName = match[3];
+
+      // Base class'ın geçerli bir controller base class'ı olup olmadığını kontrol et
+      const isValidController = CONTROLLER_BASE_CLASSES.some(
+        base => baseClassName.includes(base) || baseClassName.endsWith('Controller')
+      );
+
+      if (!isValidController) {
+        continue;
+      }
 
       // [controller] placeholder'ını gerçek isimle değiştir
-      const basePath = this.resolveRouteTemplate(routeTemplate, controllerName);
+      // Route template yoksa otomatik oluştur
+      let basePath: string;
+      if (routeTemplate) {
+        basePath = this.resolveRouteTemplate(routeTemplate, controllerName);
+      } else {
+        // Route attribute yoksa controller adından oluştur
+        // CategoriesController -> /api/categories
+        const shortName = controllerName.replace(/Controller$/, '').toLowerCase();
+        basePath = `/api/${shortName}`;
+      }
 
       this.controllers.set(controllerName, {
         name: controllerName,
@@ -323,7 +356,7 @@ export class AspNetExtractor extends BaseExtractor {
         filePath
       });
 
-      this.debug(`Controller bulundu: ${controllerName} (basePath: ${basePath})`);
+      this.debug(`Controller bulundu: ${controllerName} (basePath: ${basePath}, baseClass: ${baseClassName})`);
     }
   }
 
@@ -348,7 +381,8 @@ export class AspNetExtractor extends BaseExtractor {
     const routes: ExtractedRoute[] = [];
 
     // Bu dosyada controller var mı kontrol et
-    const controllerMatch = content.match(/public\s+class\s+(\w+Controller)\s*:/);
+    // sealed class da destekleniyor
+    const controllerMatch = content.match(/public\s+(?:sealed\s+)?class\s+(\w+Controller)\s*:/);
     if (!controllerMatch) {
       return routes;
     }

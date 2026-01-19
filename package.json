@@ -2,7 +2,7 @@
   "name": "apigen-cli",
   "version": "1.0.0",
   "description": "API dokümantasyonu ve test araçları otomatik üretici - OpenAPI, FastAPI, Flask, Spring Boot, ASP.NET Core destekli",
-  "main": "dist/core/orchestrator.js",
+    "main": "dist/core/orchestrator.js",
   "bin": {
     "apigen": "./bin/apigen.js"
   },

@@ -67,6 +67,34 @@ Handlebars.registerHelper('methodColor', function (method: string) {
   return colors[method?.toUpperCase()] || '⚪';
 });
 
+// First element helper - dizinin ilk elemanını döndürür
+Handlebars.registerHelper('first', function (array: unknown[]) {
+  if (Array.isArray(array) && array.length > 0) {
+    return array[0];
+  }
+  return null;
+});
+
+// ifEquals block helper - eşitlik kontrolü için
+Handlebars.registerHelper('ifEquals', function (this: unknown, a: unknown, b: unknown, options: Handlebars.HelperOptions) {
+  if (a === b) {
+    return options.fn(this);
+  }
+  return options.inverse(this);
+});
+
+// JSON pretty print helper
+Handlebars.registerHelper('jsonPretty', function (context: unknown) {
+  if (context === undefined || context === null) {
+    return '{}';
+  }
+  try {
+    return JSON.stringify(context, null, 2);
+  } catch {
+    return '{}';
+  }
+});
+
 // ============================================================================
 // VARSAYILAN ŞABLON
 // ============================================================================

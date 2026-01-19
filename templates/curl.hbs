@@ -1,0 +1,291 @@
+#!/bin/bash
+
+##############################################################################
+# {{info.title}} - cURL Komutları
+#
+# Bu dosya Apigen CLI tarafından otomatik oluşturulmuştur.
+# Oluşturulma Tarihi: {{generatedAt}}
+#
+# Kullanım:
+#   1. Bu dosyayı çalıştırılabilir yapın: chmod +x {{filename}}
+#   2. Environment variable'ları ayarlayın (aşağıya bakın)
+#   3. Script'i çalıştırın: ./{{filename}}
+#
+##############################################################################
+
+# =============================================================================
+# YAPILANDIRMA - Bu değerleri kendi ortamınıza göre düzenleyin
+# =============================================================================
+
+# Base URL - API'nin ana adresi
+BASE_URL="${BASE_URL:-{{config.baseUrl}}}"
+
+{{#if auth}}
+{{#ifEquals auth.type "bearer"}}
+# Bearer Token - JWT veya OAuth2 token'ınız
+TOKEN="${TOKEN:-your_token_here}"
+{{/ifEquals}}
+
+{{#ifEquals auth.type "apiKey"}}
+# API Key - API anahtarınız
+API_KEY="${API_KEY:-your_api_key_here}"
+{{/ifEquals}}
+
+{{#ifEquals auth.type "basic"}}
+# Basic Auth Credentials
+USERNAME="${USERNAME:-your_username}"
+PASSWORD="${PASSWORD:-your_password}"
+{{/ifEquals}}
+{{/if}}
+
+# Çıktı formatı (pretty print için jq kullanılır)
+# jq yüklü değilse ham JSON görüntülenir
+PRETTY_PRINT="${PRETTY_PRINT:-true}"
+
+# =============================================================================
+# YARDIMCI FONKSİYONLAR
+# =============================================================================
+
+# Renkli çıktı için ANSI kodları
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Başlık yazdırma fonksiyonu
+print_header() {
+    echo -e "\n${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}  $1${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}\n"
+}
+
+# Alt başlık yazdırma fonksiyonu
+print_subheader() {
+    echo -e "${YELLOW}▶ $1${NC}"
+}
+
+# Başarı mesajı
+print_success() {
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+# Hata mesajı
+print_error() {
+    echo -e "${RED}✗ $1${NC}"
+}
+
+# JSON çıktıyı formatla (jq varsa)
+format_json() {
+    if [ "$PRETTY_PRINT" = "true" ] && command -v jq &> /dev/null; then
+        jq '.'
+    else
+        cat
+    fi
+}
+
+# HTTP durum kodunu kontrol et
+check_status() {
+    local status=$1
+    if [ $status -ge 200 ] && [ $status -lt 300 ]; then
+        print_success "HTTP $status - Başarılı"
+    elif [ $status -ge 400 ] && [ $status -lt 500 ]; then
+        print_error "HTTP $status - İstemci Hatası"
+    elif [ $status -ge 500 ]; then
+        print_error "HTTP $status - Sunucu Hatası"
+    else
+        echo "HTTP $status"
+    fi
+}
+
+# =============================================================================
+# AUTH HEADER OLUŞTURMA
+# =============================================================================
+
+{{#if auth}}
+get_auth_header() {
+{{#ifEquals auth.type "bearer"}}
+    echo "Authorization: Bearer $TOKEN"
+{{/ifEquals}}
+{{#ifEquals auth.type "apiKey"}}
+{{#ifEquals auth.keyIn "header"}}
+    echo "{{auth.keyName}}: $API_KEY"
+{{/ifEquals}}
+{{/ifEquals}}
+{{#ifEquals auth.type "basic"}}
+    echo "Authorization: Basic $(echo -n "$USERNAME:$PASSWORD" | base64)"
+{{/ifEquals}}
+}
+{{/if}}
+
+# =============================================================================
+# API İSTEKLERİ
+# =============================================================================
+
+{{#each groups}}
+# -----------------------------------------------------------------------------
+# {{name}}
+{{#if description}}
+# {{description}}
+{{/if}}
+# -----------------------------------------------------------------------------
+
+{{#each endpoints}}
+# {{method}} {{path}}
+# {{summary}}
+{{operationId}}() {
+    print_subheader "{{method}} {{path}}"
+    {{#if summary}}
+    echo "{{summary}}"
+    {{/if}}
+    echo ""
+
+    {{#if pathParams}}
+    # Path parametreleri - bu değerleri değiştirin
+    {{#each pathParams}}
+    local {{name}}="${1:-{{example}}}"
+    shift 2>/dev/null || true
+    {{/each}}
+    {{/if}}
+
+    {{#if queryParams}}
+    # Query parametreleri
+    local QUERY_STRING="?"
+    {{#each queryParams}}
+    {{#if required}}
+    QUERY_STRING="${QUERY_STRING}{{name}}={{example}}&"
+    {{else}}
+    # Opsiyonel: {{name}}={{example}}
+    {{/if}}
+    {{/each}}
+    QUERY_STRING="${QUERY_STRING%&}" # Son & karakterini kaldır
+    {{/if}}
+
+    # URL oluştur
+    local URL="$BASE_URL{{path}}"
+    {{#if pathParams}}
+    {{#each pathParams}}
+    URL="${URL//\{{{name}}\}/${{name}}}"
+    {{/each}}
+    {{/if}}
+    {{#if queryParams}}
+    URL="${URL}${QUERY_STRING}"
+    {{/if}}
+
+    echo "URL: $URL"
+    echo ""
+
+    # cURL isteği
+    local response
+    local http_code
+
+    response=$(curl -s -w "\n%{http_code}" -X {{method}} "$URL" \
+{{#if ../auth}}
+        -H "$(get_auth_header)" \
+{{/if}}
+        -H "Content-Type: application/json" \
+        -H "Accept: application/json" \
+{{#if requestBody}}
+        -d '{{{jsonStringify requestBody.example}}}' \
+{{/if}}
+    )
+
+    # HTTP durum kodunu ve body'yi ayır
+    http_code=$(echo "$response" | tail -n1)
+    body=$(echo "$response" | sed '$d')
+
+    check_status $http_code
+    echo ""
+    echo "Response:"
+    echo "$body" | format_json
+    echo ""
+
+    return $http_code
+}
+
+{{/each}}
+{{/each}}
+
+# =============================================================================
+# ANA MENÜ
+# =============================================================================
+
+show_menu() {
+    print_header "{{info.title}} - API Test Menüsü"
+
+    echo "Kullanılabilir komutlar:"
+    echo ""
+
+{{#each groups}}
+    echo -e "${YELLOW}[{{@index}}] {{name}}${NC}"
+{{#each endpoints}}
+    echo "    {{@../index}}.{{@index}}) {{method}} {{path}} - {{summary}}"
+{{/each}}
+    echo ""
+{{/each}}
+
+    echo -e "${YELLOW}[A] Tüm istekleri çalıştır${NC}"
+    echo -e "${YELLOW}[Q] Çıkış${NC}"
+    echo ""
+}
+
+run_all() {
+    print_header "Tüm API İstekleri Çalıştırılıyor"
+
+{{#each groups}}
+{{#each endpoints}}
+    {{operationId}}
+    echo ""
+    sleep 1  # Rate limiting için kısa bekleme
+{{/each}}
+{{/each}}
+
+    print_success "Tüm istekler tamamlandı!"
+}
+
+# =============================================================================
+# BAĞIMSIZ İSTEK FONKSİYONLARI (Doğrudan çağrılabilir)
+# =============================================================================
+
+{{#each groups}}
+{{#each endpoints}}
+# {{summary}}
+# Kullanım: ./{{../../filename}} {{operationId}}{{#each pathParams}} <{{name}}>{{/each}}
+run_{{operationId}}() {
+    {{operationId}} "$@"
+}
+
+{{/each}}
+{{/each}}
+
+# =============================================================================
+# SCRIPT GİRİŞ NOKTASI
+# =============================================================================
+
+# Eğer bir argüman verilmişse, o fonksiyonu çalıştır
+if [ $# -gt 0 ]; then
+    case "$1" in
+        --help|-h)
+            show_menu
+            ;;
+        --all|-a)
+            run_all
+            ;;
+        *)
+            # Fonksiyon adı olarak çalıştırmayı dene
+            if type "$1" &>/dev/null; then
+                shift
+                "$@"
+            else
+                print_error "Bilinmeyen komut: $1"
+                echo "Kullanılabilir komutları görmek için: $0 --help"
+                exit 1
+            fi
+            ;;
+    esac
+else
+    # Argüman yoksa menüyü göster
+    show_menu
+    echo "Bir fonksiyonu çalıştırmak için: $0 <fonksiyon_adı>"
+    echo "Tüm istekleri çalıştırmak için: $0 --all"
+fi

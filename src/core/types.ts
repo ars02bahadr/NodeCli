@@ -29,6 +29,9 @@ export enum ProjectType {
   /** Python Flask framework'ü */
   FLASK = 'flask',
 
+  /** Python Django REST Framework */
+  DJANGO_REST = 'django-rest',
+
   /** Java Spring Boot framework'ü */
   SPRING_BOOT = 'spring-boot',
 
@@ -217,7 +220,7 @@ export interface ApiConfig {
  */
 export interface ApiAuth {
   /** Auth tipi */
-  type: AuthType;
+  type: AuthType | 'bearer' | 'apiKey' | 'basic' | 'oauth2' | 'none';
 
   /** Header veya query param adı (API Key için) */
   keyName?: string;
@@ -225,8 +228,20 @@ export interface ApiAuth {
   /** Key'in konumu: header veya query (API Key için) */
   keyLocation?: 'header' | 'query';
 
+  /** Key'in konumu (alternatif ad) */
+  keyIn?: 'header' | 'query';
+
+  /** API Key değeri (API Key için) */
+  keyValue?: string;
+
   /** Placeholder değişken adı (örn: {{token}}) */
-  tokenPlaceholder: string;
+  tokenPlaceholder?: string;
+
+  /** Basic Auth username */
+  username?: string;
+
+  /** Basic Auth password */
+  password?: string;
 
   /** OAuth2 scope'ları (opsiyonel) */
   scopes?: string[];
@@ -338,7 +353,7 @@ export interface ApiParameter {
   name: string;
 
   /** Parametrenin konumu */
-  in: ParameterLocation;
+  in: ParameterLocation | 'path' | 'query' | 'header' | 'cookie';
 
   /** Zorunlu mu? */
   required: boolean;
@@ -458,7 +473,7 @@ export interface ApiResponse {
  */
 export interface ApiSchema {
   /** Veri tipi */
-  type: SchemaType;
+  type: SchemaType | 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' | 'null';
 
   /** Format (string için: email, date-time, uuid, vb.) */
   format?: string;
@@ -738,11 +753,12 @@ export interface ProgressInfo {
  * @returns value ApiSchema ise true
  */
 export function isApiSchema(value: unknown): value is ApiSchema {
+  const validTypes = [...Object.values(SchemaType), 'string', 'number', 'integer', 'boolean', 'array', 'object', 'null'];
   return (
     typeof value === 'object' &&
     value !== null &&
     'type' in value &&
-    Object.values(SchemaType).includes((value as ApiSchema).type)
+    validTypes.includes((value as ApiSchema).type as string)
   );
 }
 
